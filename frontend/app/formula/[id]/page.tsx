@@ -20,11 +20,11 @@ function Formula() {
       const script = document.createElement('script')
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_CHTML'
       script.async = true
-      await new Promise((resolve) => {
+      await new Promise<Event>((resolve, reject) => {
         script.onload = resolve
         document.body.appendChild(script)
-      })
-      window.MathJax.Hub.Queue(['Typeset', window.MathJax.Hub])
+      });
+      (window as any).MathJax.Hub.Queue(['Typeset', (window as any).MathJax.Hub])
     }
     loadMathJax()
   }, [])

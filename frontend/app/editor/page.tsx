@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 
 
-export function addStyles() {
+function addStyles() {
     if (document.getElementById('react-mathquill-styles') == null) {
         const styleTag = document.createElement('style')
         styleTag.setAttribute('id', 'react-mathquill-styles')

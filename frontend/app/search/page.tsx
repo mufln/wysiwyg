@@ -1,18 +1,16 @@
-
 'use client'
-
-import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
+import { useState, useEffect } from 'react';
+import * as React from 'react';
 // @ts-ignore
 import style from '@edtr-io/mathquill/build/mathquill.css';
 import Link from 'next/link'
-import { StaticMathField } from 'react-mathquill';
 import { Formula, useFormulas } from "@/lib/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import EquationEditor from '@/components/EquationEditor';
+const EquationEditor = dynamic(() => import('@/components/EquationEditor'), { ssr: false });
 import { MathJax, MathJaxContext } from "better-react-mathjax";
+import dynamic from "next/dynamic";
 
-export function addStyles() {
+function addStyles() {
     if (document.getElementById('react-mathquill-styles') == null) {
         const styleTag = document.createElement('style')
         styleTag.setAttribute('id', 'react-mathquill-styles')
@@ -63,7 +61,7 @@ function Search() {
                         <li className="border rounded p-4">
                             <h3 className="font-bold text-lg mb-2">{formula.name}</h3>
                             <div className="mb-2">
-                                <MathJax>{'\\begin{align}'+formula.latex+'\\end{align}'}</MathJax>
+                                { show && <MathJax>{'\\begin{align}'+formula.latex+'\\end{align}'}</MathJax> }
                             </div>
                             <Link href={formula.source} target="_blank" rel="noopener noreferrer"
                                   className="text-blue-500 hover:underline">
@@ -77,11 +75,16 @@ function Search() {
     )
 }
 
+const SearchNoSSR = dynamic(() =>
+Promise.resolve(Search), {
+    ssr: false,
+})
+
 export default function Page() {
     let client = new QueryClient()
     return <QueryClientProvider client={client}>
         <MathJaxContext>
-            <Search/>
+            <SearchNoSSR/>
         </MathJaxContext>
     </QueryClientProvider>
 }
