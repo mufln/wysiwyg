@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile
 import psycopg
 from typing import Annotated
+
+from ollama import ChatResponse, Client
 from pydantic import BaseModel
 from fastapi import Depends
 from psycopg.rows import dict_row
@@ -10,6 +12,8 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 import ollama
 import re
+
+from cfg import DATABASE_URL
 
 converter = PdfConverter(
     artifact_dict=create_model_dict(),
@@ -36,7 +40,7 @@ class FormulaInDb(Formula):
 
 
 def connection_factory():
-    return psycopg.connect("postgresql://wysiwyg:randomPassword123!@localhost/wysiwyg", )
+    return psycopg.connect(DATABASE_URL,)
 
 
 @app.get("/formulas")
@@ -63,10 +67,19 @@ def parse_pdf(db: Annotated[psycopg.Connection, Depends(connection_factory)], fi
     f.close()
     rendered = converter("temp.pdf")
     text, _, images = text_from_rendered(rendered)
-    matches_large = re.findall(r"\$\$[^\$]*\$\$", text)
-    matches_small = re.findall(r"\$[^\$]*\$", text)
-    for match in matches_large:
-        cur.execute("INSERT INTO formulas(name, latex, source) VALUES (%s, %s, %s)", ("", match.strip('$'), "users"))
-    db.commit()
-    return list(map(lambda x: x.strip('$'), matches_large)), list(
-        map(lambda x: x.strip('$'), filter(lambda x: x != '$$', matches_small)))
+    results = []
+    for match in  re.finditer(r"\$\$[^\$]*\$\$", text):
+        formula = match.group()
+        context_span = max(0, match.span()[0]-1000), min(len(text), match.span()[1]+1000)
+        context = text[context_span[0]:context_span[1]]
+        response: ChatResponse = ollama.chat(model='llama3.2', messages=[
+            {
+                'role': 'user',
+                'content': f'Describe all variables in formula "{formula}". For reference use the following context: "{context}"',
+            },
+        ])
+        results.append({
+            'formula': formula,
+            'description': response.choices[0].message.content,
+        })
+    return results
