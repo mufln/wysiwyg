@@ -1,7 +1,11 @@
-fastapi
+fastapi~=0.115.6
 uvicorn
 marker-pdf
-psycopg[binary]
-ollama
-python-dotenv
+psycopg[binary]~=3.2.3
+ollama~=0.4.4
+python-dotenv~=1.0.1
 python-multipart
+
+pydantic~=2.10.3
+sympy~=1.13.1
+antlr4-python3-runtime=4.11.0

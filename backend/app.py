@@ -12,6 +12,7 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 import ollama
 import re
+import compare_functions
 
 from cfg import DATABASE_URL
 
@@ -88,3 +89,15 @@ def parse_pdf(db: Annotated[psycopg.Connection, Depends(connection_factory)], fi
         cur.execute("INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s)", (name.message.content, formula, "", str(response.message.content)))
         db.commit()
     return results
+
+
+@app.post("/compare")
+def compare(db: Annotated[psycopg.Connection, Depends(connection_factory)], formula: Formula):
+    cur = db.cursor()
+    cur.execute("SELECT latex FROM formulas")
+    all = [row[0] for row in cur.fetchall()]
+    result = [
+        {"formula": db_formula, "percent": compare_functions.percent(formula.latex, db_formula)}
+        for db_formula in all
+    ]
+    return result
