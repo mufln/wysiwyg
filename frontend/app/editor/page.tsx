@@ -42,7 +42,7 @@ function Editor() {
             <Input onChange={(e) => setName(e.target.value)} value={name}/>
             <Label>Формула</Label>
             <div className="mb-4 p-4 border rounded">
-                <EquationEditor latex={latex} onChange={setLatex}/>
+                <EquationEditor latex={latex} onChange={setLatex} />
             </div>
             <Label>Источник</Label>
             <Input onChange={(e) => setSource(e.target.value)} value={source}/>
@@ -54,7 +54,7 @@ function Editor() {
                 });
                 router.push("/search")
             }}>
-                Добавить
+                Сохранить формулу
             </Button>
         </div>
     )

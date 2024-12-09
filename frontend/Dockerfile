@@ -27,7 +27,7 @@ WORKDIR /app
 
 # Set environment to production
 ENV NODE_ENV production
-
+ENV NEXT_PUBLIC_API_URL=/api
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

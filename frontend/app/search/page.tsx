@@ -51,9 +51,9 @@ function Search() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Formula Search</h1>
+            <h1 className="text-3xl font-bold mb-6">Поиск формулы</h1>
             <div className="mb-4 p-4 border rounded">
-                {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm}/>}
+                {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm}  />}
             </div>
             <ul className="space-y-4">
                 {filteredFormulas.map(formula => (

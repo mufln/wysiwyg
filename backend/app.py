@@ -59,7 +59,7 @@ def create_formula(db: Annotated[psycopg.Connection, Depends(connection_factory)
     db.commit()
 
 
-@app.post("/parse")
+@app.post("/parse_pdf")
 def parse_pdf(db: Annotated[psycopg.Connection, Depends(connection_factory)], file: UploadFile):
     cur = db.cursor(row_factory=dict_row)
     f = open("temp.pdf", 'wb')
@@ -70,16 +70,21 @@ def parse_pdf(db: Annotated[psycopg.Connection, Depends(connection_factory)], fi
     results = []
     for match in  re.finditer(r"\$\$[^\$]*\$\$", text):
         formula = match.group()
+        formula = formula.strip("$")
         context_span = max(0, match.span()[0]-1000), min(len(text), match.span()[1]+1000)
         context = text[context_span[0]:context_span[1]]
         response: ChatResponse = ollama.chat(model='llama3.2', messages=[
             {
                 'role': 'user',
-                'content': f'Describe all variables in formula "{formula}". For reference use the following context: "{context}"',
+                'content': f'Describe all variables in formula "{formula}". For reference use the following context: "{context}". Do not include any other text. Write only descriptions of variables, separated by new line.',
             },
         ])
-        results.append({
-            'formula': formula,
-            'description': response.choices[0].message.content,
-        })
+        name: ChatResponse = ollama.chat(model='llama3.2', messages=[
+            {
+                'role': 'user',
+                'content': f'Give a name for formula "{formula}". For reference use the following context: "{context}". Do not include any other text. Write only name.',
+            },
+        ])
+        cur.execute("INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s)", (name.message.content, formula, "", str(response.message.content)))
+        db.commit()
     return results
