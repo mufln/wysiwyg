@@ -8,6 +8,7 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
 import {FileText, Upload, AlertCircle, Info} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link";
 
 interface JobStatus {
     id: number,
@@ -87,7 +88,7 @@ export default function PDFImportPage() {
                     <CardTitle>Обработка PDF</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={activeTab} onValueChange={(value: 'upload' | 'link') => setActiveTab(value)}>
+                    <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'upload' | 'link')}>
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="upload">Загрузить файл</TabsTrigger>
                             <TabsTrigger value="link">Указать ссылку</TabsTrigger>
@@ -113,7 +114,7 @@ export default function PDFImportPage() {
 
                     <Button onClick={handleUpload} disabled={isLoading || (activeTab === 'upload' ? !file : !url)}>
                         {isLoading ? 'Обработка...' : 'Импортировать файл'}
-                        {activeTab === 'upload' ? <Upload className="ml-2 h-4 w-4" /> : <Link className="ml-2 h-4 w-4" />}
+                        {activeTab === 'upload' ? <Upload className="ml-2 h-4 w-4" /> : <Link href={"#"} className="ml-2 h-4 w-4" />}
                     </Button>
 
                     {isLoading && (
@@ -131,7 +132,7 @@ export default function PDFImportPage() {
                             <AlertCircle className="h-4 w-4"/>
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>
-                                {error instanceof Error ? error.message : 'Неизветсная ошибка'}
+                                {error.message ?? 'Неизветсная ошибка'}
                             </AlertDescription>
                         </Alert>
                     )}

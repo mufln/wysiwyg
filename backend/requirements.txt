@@ -15,4 +15,4 @@ pydantic-settings
 uvicorn
 python-multipart
 sympy~=1.13.1
-antlr4-python3-runtime=4.11.0
+antlr4-python3-runtime==4.11.0

@@ -20,6 +20,7 @@ from .logging_config import (
     DBQueryTimer,
     log_rabbitmq_message,
 )
+from .compare_functions import percent
 
 settings = Settings()
 
@@ -212,3 +213,19 @@ async def parse_pdf(file: UploadFile) -> JobStatus:
 
     connection.close()
     return JobStatus(id=job_id, status="pnd", datetime=job_timing)
+
+@app.post("/compare")
+async def compare(formula: Formula):
+    logger = get_logger(__name__)
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("insert_job"):
+        with DBQueryTimer("select"):
+            async with app.async_pool.connection() as conn:
+                cur = conn.cursor(row_factory=dict_row)
+                cur.execute("SELECT latex FROM formulas")
+                all = [row["latex"] for row in cur.fetchall()]
+    result = [
+        {"formula": db_formula, "percent": percent(formula.latex, db_formula)}
+        for db_formula in all
+    ]
+    return result
