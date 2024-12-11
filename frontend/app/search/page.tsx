@@ -9,6 +9,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const EquationEditor = dynamic(() => import('@/components/EquationEditor'), { ssr: false });
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 import dynamic from "next/dynamic";
+import { CardContent, Card, CardHeader, CardFooter } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 function addStyles() {
     if (document.getElementById('react-mathquill-styles') == null) {
@@ -32,8 +34,9 @@ function highlightMatches(latex: string, searchLatex: string) {
 }
 
 function Search() {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('')
-    const {data: formulas, isLoading, isError} = useFormulas();
+    const { data: formulas, isLoading, isError } = useFormulas();
     const [filteredFormulas, setFilteredFormulas] = useState<Formula[]>([])
     const [show, setShow] = useState(false)
 
@@ -52,23 +55,25 @@ function Search() {
     return (
         <div className="max-w-2xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Поиск формулы</h1>
-            <div className="mb-4 p-4 border rounded">
-                {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm}  />}
-            </div>
-            <ul className="space-y-4">
+            {/*<div className="mb-4 border rounded">*/}
+            {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm} />}
+            {/*</div>*/}
+            <ul className="space-y-4 gap-4 my-4 flex flex-col">
                 {filteredFormulas.map(formula => (
-                    <a key={formula.id} href={"/formula/" + formula.id}>
-                        <li className="border rounded p-4">
-                            <h3 className="font-bold text-lg mb-2">{formula.name}</h3>
-                            <div className="mb-2">
-                                { show && <MathJax>{'\\begin{align}'+formula.latex+'\\end{align}'}</MathJax> }
-                            </div>
+                    <Card key={formula.id} onClick={() => router.push("/formula/" + formula.id)}>
+                        <CardHeader className="font-bold text-xl">
+                            {formula.name}
+                        </CardHeader>
+                        <CardContent>
+                            {show && <MathJax>{'\\begin{align}' + formula.latex + '\\end{align}'}</MathJax>}
+                        </CardContent>
+                        <CardFooter>
                             <Link href={formula.source} target="_blank" rel="noopener noreferrer"
-                                  className="text-blue-500 hover:underline">
+                                className="text-blue-500 hover:underline">
                                 Source
                             </Link>
-                        </li>
-                    </a>
+                        </CardFooter>
+                    </Card>
                 ))}
             </ul>
         </div>
@@ -76,7 +81,7 @@ function Search() {
 }
 
 const SearchNoSSR = dynamic(() =>
-Promise.resolve(Search), {
+    Promise.resolve(Search), {
     ssr: false,
 })
 
@@ -84,7 +89,7 @@ export default function Page() {
     let client = new QueryClient()
     return <QueryClientProvider client={client}>
         <MathJaxContext>
-            <SearchNoSSR/>
+            <SearchNoSSR />
         </MathJaxContext>
     </QueryClientProvider>
 }

@@ -1,20 +1,40 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { FileText, Upload, AlertCircle, Link } from 'lucide-react'
+import {useState} from 'react'
+import {useQuery} from '@tanstack/react-query'
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
+import {FileText, Upload, AlertCircle, Info} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+interface JobStatus {
+    id: number,
+    status: "pnd" | "prc" | "suc" | "err"
+}
+
+function nameFromShorthand(s: "pnd" | "prc" | "suc" | "err"): string {
+    switch (s) {
+        case "pnd":
+            return "Ожидание очереди"
+        case "prc":
+            return "В обработке"
+        case "suc":
+            return "Обработано успешно"
+        case "err":
+            return "Во время обработки произошла ошибка"
+        default:
+            return "Неизвестное состояние";
+    }
+}
 
 export default function PDFImportPage() {
     const [file, setFile] = useState<File | null>(null)
     const [url, setUrl] = useState<string>('')
     const [activeTab, setActiveTab] = useState<'upload' | 'link'>('upload')
 
-    const { data, error, isLoading, refetch } = useQuery({
+    const {data, error, isLoading, refetch} = useQuery({
         queryKey: ['parsePDF'],
         queryFn: async () => {
             let fileToSend: File | null = file;
@@ -33,16 +53,16 @@ export default function PDFImportPage() {
             const formData = new FormData()
             formData.append('file   ', fileToSend)
 
-            const apiResponse = await fetch(process.env.NEXT_PUBLIC_API_URL+'/parse_pdf', {
+            const response = await fetch('/api/parse_pdf', {
                 method: 'POST',
                 body: formData,
             })
 
-            if (!apiResponse.ok) {
+            if (!response.ok) {
                 throw new Error('Не удалось обработать PDF')
             }
 
-            return apiResponse.json()
+            return await response.json() as JobStatus
         },
         enabled: false, // Don't run the query automatically
     })
@@ -67,7 +87,7 @@ export default function PDFImportPage() {
                     <CardTitle>Обработка PDF</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upload' | 'link')}>
+                    <Tabs value={activeTab} onValueChange={(value: 'upload' | 'link') => setActiveTab(value)}>
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="upload">Загрузить файл</TabsTrigger>
                             <TabsTrigger value="link">Указать ссылку</TabsTrigger>
@@ -108,7 +128,7 @@ export default function PDFImportPage() {
 
                     {error && (
                         <Alert variant="destructive" className="mt-4">
-                            <AlertCircle className="h-4 w-4" />
+                            <AlertCircle className="h-4 w-4"/>
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>
                                 {error instanceof Error ? error.message : 'Неизветсная ошибка'}
@@ -118,7 +138,14 @@ export default function PDFImportPage() {
 
                     {data && (
                         <div className="mt-4">
-                            <h3 className="text-lg font-semibold mb-2">Обработано успешно</h3>
+                            <h3 className="text-lg font-semibold mb-2">Задача была успешно добавлена в очередь!</h3>
+                            <Card className="flex flex-row items-center justify-between h-full bg-red p-4">
+                                <div className="flex gap-1 text-xl">
+                                    <span className="text-gray-300">ID</span>
+                                    <span className="">{data.id}</span>
+                                </div>
+                                <span>{nameFromShorthand(data.status)}</span>
+                            </Card>
                         </div>
                     )}
                 </CardContent>

@@ -1,0 +1,1 @@
+ALTER TABLE formulas DROP COLUMN description;

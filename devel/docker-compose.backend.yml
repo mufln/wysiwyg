@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    networks:
+      - default
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+networks:
+  default:
+    driver: bridge
+volumes:
+  data:

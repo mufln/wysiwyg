@@ -5,8 +5,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
     volumes:
       - data:/var/lib/postgresql/data
     networks:
@@ -15,13 +13,10 @@ services:
     image: jaegertracing/all-in-one:latest
     ports:
       - "16686:16686"
-      - "4318:4318"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
   rabbit:
     image: rabbitmq
-    ports:
-      - "5672:5672"
   ollama:
     image: ollama/ollama
     volumes:
@@ -45,16 +40,6 @@ services:
       - JAEGER_AGENT_PORT=4318
     networks:
       - default
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    environment:
-      API_HOST: "http://backend:8000"
-    networks:
-      - default
   worker:
     build: ./worker
     volumes:
@@ -68,7 +53,7 @@ services:
       - CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
       - RABBITMQ_HOST=amqp://guest:guest@rabbit
       - RABBITMQ_QUEUE=pdf_processing
-    networks: 
+    networks:
       - default
 networks:
   default:

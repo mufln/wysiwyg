@@ -1,8 +1,8 @@
-FROM python:3.11-alpine
+FROM python:3.11
 
 WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 COPY . /app
-ENV CONNECTION_STRING
+
 CMD ["./bootstrap.sh"]
