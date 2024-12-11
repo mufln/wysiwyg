@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
 import psycopg
-from typing import Annotated, List, Dict
+from typing import Annotated
 
 from ollama import ChatResponse, Client
 from pydantic import BaseModel
@@ -33,6 +33,7 @@ class Formula(BaseModel):
     name: str
     latex: str
     source: str
+
 
 class FormulaInDb(Formula):
     id: int
@@ -97,3 +98,14 @@ def message(messages: List[Dict[str,str]]):
         "Когда речь идет о формулах, законах и т.д., подразумеваются математические законы и формулы. Действуй как математик. Не говори ни о чем, кроме математики. Тебе запрещено говорить 'я не знаю'. Необходимо давать ответы формулами в формате LaTex. Допустимо объяснение формул на русском языке. Тебе разрешено говорить только на русском."}
     response: ChatResponse = ollama.chat(model='llama3.2', messages=[default_prompt]+messages)
     return response.message.content
+
+@app.post("/compare")
+def compare(db: Annotated[psycopg.Connection, Depends(connection_factory)], formula: Formula):
+    cur = db.cursor()
+    cur.execute("SELECT latex FROM formulas")
+    all = [row[0] for row in cur.fetchall()]
+    result = [
+        {"formula": db_formula, "percent": compare_functions.percent(formula.latex, db_formula)}
+        for db_formula in all
+    ]
+    return result
