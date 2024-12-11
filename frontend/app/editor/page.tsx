@@ -10,7 +10,6 @@ import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {useRouter} from "next/navigation";
-import Keyboard from "@/app/editor/keyboard/kb";
 import MathKeyboard from "@/app/editor/keyboard/MathKeyboard";
 
 
