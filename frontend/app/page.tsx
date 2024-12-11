@@ -17,6 +17,10 @@ export default function Home() {
                       className="block px-6 py-3 bg-violet-500 text-white rounded-lg text-center hover:bg-violet-600 transition-colors">
                     Импорт из  pdf
                 </Link>
+                <Link href="/assistant"
+                      className="block px-6 py-3 bg-zinc-500 text-white rounded-lg text-center hover:bg-zinc-600 transition-colors">
+                    Ассистент
+                </Link>
             </div>
         </div>
     )

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
 import psycopg
-from typing import Annotated
+from typing import Annotated, List, Dict
 
 from ollama import ChatResponse, Client
 from pydantic import BaseModel
@@ -33,7 +33,6 @@ class Formula(BaseModel):
     name: str
     latex: str
     source: str
-
 
 class FormulaInDb(Formula):
     id: int
@@ -88,3 +87,13 @@ def parse_pdf(db: Annotated[psycopg.Connection, Depends(connection_factory)], fi
         cur.execute("INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s)", (name.message.content, formula, "", str(response.message.content)))
         db.commit()
     return results
+
+
+@app.post("/message")
+def message(messages: List[Dict[str,str]]):
+    print(messages)
+    default_prompt = { "role":'system',
+        "content":
+        "Когда речь идет о формулах, законах и т.д., подразумеваются математические законы и формулы. Действуй как математик. Не говори ни о чем, кроме математики. Тебе запрещено говорить 'я не знаю'. Необходимо давать ответы формулами в формате LaTex. Допустимо объяснение формул на русском языке. Тебе разрешено говорить только на русском."}
+    response: ChatResponse = ollama.chat(model='llama3.2', messages=[default_prompt]+messages)
+    return response.message.content

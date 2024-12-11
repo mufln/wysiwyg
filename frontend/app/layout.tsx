@@ -29,7 +29,7 @@ export default function RootLayout({
                         <Link href="/editor" className="hover:text-gray-300">Редактор</Link>
                         <Link href="/search" className="hover:text-gray-300">Поиск</Link>
                         <Link href="/parser" className="hover:text-gray-300">Импорт</Link>
-
+                        <Link href="/assistant" className="hover:text-gray-300">Ассистент</Link>
                     </div>
                 </div>
             </nav>
