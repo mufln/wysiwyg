@@ -4,13 +4,12 @@ import React, {useState, useEffect} from 'react'
 import dynamic from 'next/dynamic'
 // @ts-ignore
 import style from '@edtr-io/mathquill/build/mathquill.css';
-import {Button} from "@/components/ui/button";
 import {useCreateFormula} from "@/lib/api";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
 import {useRouter} from "next/navigation";
 import MathKeyboard from "@/app/editor/keyboard/MathKeyboard";
+import {Button} from "@/components/ui/button";
 
 
 function addStyles() {
@@ -59,7 +58,17 @@ function Editor() {
                             </div>
                         </div>
                     </div>
-
+                    <Button className="bg-gray-800 text-white hover:bg-gray-700"
+                        onClick={async () => {
+                        await createFormula.mutateAsync({
+                            name,
+                            latex,
+                            source
+                        });
+                        router.push("/search")
+                    }}>
+                        Сохранить формулу
+                    </Button>
                 </div>
             </div>
             <MathKeyboard onInsert={handleInsert}/>

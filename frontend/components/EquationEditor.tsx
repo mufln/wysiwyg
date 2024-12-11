@@ -12,7 +12,7 @@ interface EquationEditorProps {
 const EquationEditor: React.FC<EquationEditorProps> = ({latex, onChange}) => {
     return (
         <EditableMathField
-            className="peer p-4 h-96 w-full border-2 border-gray-300 text-gray-900 focus:outline-none focus:border-blue-600 rounded-md resize-none"
+            className="peer p-4 h-80 w-full border-2 border-gray-300 text-gray-900 focus:outline-none focus:border-blue-600 rounded-md resize-none"
             placeholder="Введите математическое выражение"
             // value={mathInput}
             latex={latex}
