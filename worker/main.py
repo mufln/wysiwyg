@@ -78,6 +78,7 @@ def process_message(ch, method, properties, body):
     
 
 def main():
+    client.pull(OLLAMA_MODEL)
     print('Worker is waiting for messages. To exit press CTRL+C')
     connection, channel = connect_to_rabbitmq()
     channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=process_message)
