@@ -36,6 +36,7 @@ def connect_to_database() -> psycopg.Connection:
 def process_message(ch, method, properties, body):
     print(" [x] Received job %s" % properties.correlation_id)
     db = connect_to_database()
+    ids = []
     db.execute("UPDATE jobs SET status='prc' WHERE id=%s", (int(properties.correlation_id),))
     db.commit()
     # Save PDF content to a temporary file
@@ -64,10 +65,16 @@ def process_message(ch, method, properties, body):
                     'content': f'Give a name for formula "{formula}". For reference use the following context: "{context}". Do not include any other text. Write only name.',
                 },
             ])
-            cur.execute("INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s)", (name.message.content, formula, "", str(response.message.content)))
+            cur.execute("INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s) RETURNING id", (name.message.content, formula, "", str(response.message.content)))
+            ids.append(cur.fetchone()["id"])
             db.commit()
-            db.execute("UPDATE jobs SET status='suc' WHERE id=%s", (int(properties.correlation_id),))
-            db.commit()
+        cur = db.cursor(row_factory=dict_row)
+        cur.execute("INSERT INTO import_results(job_id) VALUES (%s) RETURNING id", (int(properties.correlation_id),))
+        results_id = cur.fetchone()["id"]
+        for idx in ids:
+            cur.execute("INSERT INTO import_results_entries(result_id, formula_id) VALUES (%s, %s)", (int(results_id), idx))
+        db.execute("UPDATE jobs SET status='suc' WHERE id=%s", (int(properties.correlation_id),))
+        db.commit()
     except Exception as e:
         db.execute("UPDATE jobs SET status='err' WHERE id=%s", (int(properties.correlation_id),))
         db.commit()

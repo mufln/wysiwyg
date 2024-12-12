@@ -218,7 +218,7 @@ async def parse_pdf(file: UploadFile) -> JobStatus:
 async def compare(formula: Formula):
     logger = get_logger(__name__)
     tracer = trace.get_tracer(__name__)
-    with tracer.start_as_current_span("insert_job"):
+    with tracer.start_as_current_span("select_formulas"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
@@ -234,7 +234,7 @@ async def compare(formula: Formula):
 async def compare_indexes(formula: Formula):
     logger = get_logger(__name__)
     tracer = trace.get_tracer(__name__)
-    with tracer.start_as_current_span("insert_job"):
+    with tracer.start_as_current_span("select_formulas"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
