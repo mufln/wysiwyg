@@ -20,7 +20,7 @@ from .logging_config import (
     DBQueryTimer,
     log_rabbitmq_message,
 )
-from .compare_functions import percent
+from .compare_functions import percent, find_indexes
 
 settings = Settings()
 
@@ -226,6 +226,22 @@ async def compare(formula: Formula):
                 all = [row["latex"] for row in cur.fetchall()]
     result = [
         {"formula": db_formula, "percent": percent(formula.latex, db_formula)}
+        for db_formula in all
+    ]
+    return result
+
+@app.post("/compare_indexes")
+async def compare_indexes(formula: Formula):
+    logger = get_logger(__name__)
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("insert_job"):
+        with DBQueryTimer("select"):
+            async with app.async_pool.connection() as conn:
+                cur = conn.cursor(row_factory=dict_row)
+                cur.execute("SELECT latex FROM formulas")
+                all = [row["latex"] for row in cur.fetchall()]
+    result = [
+        {"formula": db_formula, "indexes": find_indexes(db_formula, formula.latex)}
         for db_formula in all
     ]
     return result

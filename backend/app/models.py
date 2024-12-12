@@ -17,3 +17,7 @@ class JobStatus(BaseModel):
     id: int
     status: Literal["pnd", "prc", "suc", "err", "arc"]
     datetime: datetime.datetime
+
+
+class FormulaWithIndex(Formula):
+    indexes: list[(int, int)]
