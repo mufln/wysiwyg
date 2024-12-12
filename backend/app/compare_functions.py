@@ -6,6 +6,12 @@ import re
 
 
 def latex_to_array(array: list, index: int = 0):
+    """
+    Recursively convert a SymPy expression to an array representation.
+
+    :param array: List containing the SymPy expression
+    :param index: Current index in the array
+    """
     if array[index] is not None and len(array[index].args) >= 2:
         current_expression = array[index]
         del array[index]
@@ -26,6 +32,11 @@ def latex_to_array(array: list, index: int = 0):
 
 
 def indexing_and_stringify(array: list):
+    """
+    Replace symbols with indexed variables and convert all elements to strings.
+
+    :param array: List of SymPy expressions
+    """
     replacements = dict()
     for i in range(len(array)):
         if type(array[i]) == sympy.core.symbol.Symbol:
@@ -37,6 +48,13 @@ def indexing_and_stringify(array: list):
 
 
 def percent(latex1, latex2):
+    """
+    Calculate the similarity percentage between two LaTeX expressions.
+
+    :param latex1: First LaTeX expression
+    :param latex2: Second LaTeX expression
+    :return: Similarity percentage
+    """
     l1 = [expand(simplify(parse_latex(latex1)))]
     l2 = [expand(simplify(parse_latex(latex2)))]
     latex_to_array(l1, 0)
@@ -56,15 +74,26 @@ def percent(latex1, latex2):
     return result_persentage
 
 
-# Работа с индексами #
-def split_latex_expression(latex_str):
-    # Регулярное выражение для разбиения LaTeX-выражений
-    pattern = r'(\\[a-zA-Z]+|\d+\.?\d*|[a-zA-Z]+|[(){}^_]|[\+\-\*/=])'
-    tokens = re.findall(pattern, latex_str)
+
+def split_latex_expression(latex_str: str) -> list[str]:
+    """
+    Separate input latex expression into a list of separate tokens.
+
+    :param latex_str: Latex expression string
+    :return: list of tokens
+    """
+    # Регулярное выражение для более точного разбиения LaTeX-выражений
+    tokens = re.findall('(\\[a-zA-Z]+|\d+\.?\d*|[a-zA-Z]+|[(){}^_]|[\+\-\*/=])', latex_str)
     return tokens
 
 
 def get_operand_indices(tokens):
+    """
+    Get indices of operands in the token list.
+
+    :param tokens: List of tokens
+    :return: List of operand indices
+    """
     operand_indices = []
     for index, token in enumerate(tokens):
         if re.match(r'^\d+\.?\d*$|^[a-zA-Z]+|^\\[a-zA-Z]+$', token):
@@ -73,6 +102,12 @@ def get_operand_indices(tokens):
 
 
 def abstract_tokens(tokens):
+    """
+    Abstract variables in tokens and create mappings.
+
+    :param tokens: List of tokens
+    :return: Abstracted tokens, indexed abstracted tokens, and variable mapping
+    """
     abstracted_indexed = []
     abstracted = []
     var_map = {}
@@ -92,6 +127,15 @@ def abstract_tokens(tokens):
 
 
 def compare_two_blocks(subtoken1, subtoken2, block, result_block=None):
+    """
+    Compare two blocks of tokens and find common sub-blocks.
+
+    :param subtoken1: First block of tokens
+    :param subtoken2: Second block of tokens
+    :param block: Current block information
+    :param result_block: List to store resulting blocks
+    :return: List of common sub-blocks
+    """
     if result_block is None:
         result_block = []
     start1 = block[0]
@@ -143,10 +187,19 @@ def compare_two_blocks(subtoken1, subtoken2, block, result_block=None):
 
 
 def find_common_blocks(tokens1, abstracted_tokens1, tokens2, abstracted_tokens2):
+    """
+    Find common blocks between two sets of tokens using dynamic programming.
+
+    :param tokens1: First set of tokens
+    :param abstracted_tokens1: Abstracted first set of tokens
+    :param tokens2: Second set of tokens
+    :param abstracted_tokens2: Abstracted second set of tokens
+    :return: List of common blocks
+    """
     n, m = len(abstracted_tokens1), len(abstracted_tokens2)
     dp = [[0] * (m + 1) for _ in range(n + 1)]
 
-    # Заполняем DP таблицу
+    # Заполняем DP таблицу  // Diabl: wtf is this?
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             if abstracted_tokens1[i - 1] == abstracted_tokens2[j - 1]:
@@ -181,6 +234,13 @@ def find_common_blocks(tokens1, abstracted_tokens1, tokens2, abstracted_tokens2)
 
 
 def find_indexes(formula1: str, formula2: str) -> list[(int, int)]:
+    """
+    Find common subexpression indexes between two LaTeX formulas.
+
+    :param formula1: First LaTeX formula
+    :param formula2: Second LaTeX formula
+    :return: List of tuples containing start and end indices of common subexpressions
+    """
     tokens1 = split_latex_expression(formula1)
     tokens2 = split_latex_expression(formula2)
     abstracted1, abstracted_indexed1, var_map1 = abstract_tokens(tokens1)

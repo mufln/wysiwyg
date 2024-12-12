@@ -2,12 +2,15 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 import datetime
+from typing import Annotated
 
+import opentelemetry.trace
 import pika
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
+
 from .config import Settings
 from .models import Formula, FormulaInDb, JobStatus
 from .utils import require
@@ -15,7 +18,7 @@ from prometheus_client import make_asgi_app
 from opentelemetry import trace
 from .logging_config import (
     init_logging_and_tracing,
-    get_logger,
+    get_logger as config_get_logger,
     logging_middleware,
     DBQueryTimer,
     log_rabbitmq_message,
@@ -69,19 +72,25 @@ def rabbit_connection():
         pika.URLParameters(settings.amqp_dsn.unicode_string())
     )
     channel = connection.channel()
-    channel.queue_declare(queue=settings.ai_pdf_queue)
     return connection, channel
 
 
+def get_logger():
+    return config_get_logger(__name__)
+
+def get_tracer():
+    return trace.get_tracer(__name__)
+
+Logger = Annotated[logging.Logger, Depends(get_logger)]
+Tracer = Annotated[opentelemetry.trace.Tracer, Depends(get_tracer)]
+
 @app.get("/formulas")
-async def get_formulas() -> list[FormulaInDb]:
+async def get_formulas(logger: Logger, tracer: Tracer) -> list[FormulaInDb]:
     """
     Retrieve all formulas from the database.
 
     :return: A list of FormulaInDb objects representing all formulas in the database.
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("select_formulas"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
@@ -93,15 +102,10 @@ async def get_formulas() -> list[FormulaInDb]:
 
 
 @app.post("/formulas")
-async def create_formula(formula: Formula):
+async def create_formula(formula: Formula, tracer: Tracer, logger: Logger):
     """
     Create a new formula in the database.
-
-    :param formula: A Formula object containing the formula details to be inserted.
-    :type formula: Formula
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("insert_formula"):
         with DBQueryTimer("insert"):
             async with app.async_pool.connection() as conn:
@@ -115,14 +119,12 @@ async def create_formula(formula: Formula):
 
 
 @app.get("/jobs")
-async def get_jobs() -> list[JobStatus]:
+async def get_jobs(tracer: Tracer, logger: Logger) -> list[JobStatus]:
     """
     Retrieve all unarchived jobs from the database.
 
     :return: A list of JobStatus objects representing all jobs in the database.
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("select_jobs"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
@@ -134,17 +136,13 @@ async def get_jobs() -> list[JobStatus]:
 
 
 @app.get("/jobs/status/{job_id}")
-async def get_job_status(job_id: int):
+async def get_job_status(job_id: int, tracer: Tracer, logger: Logger) -> JobStatus:
     """
     Retrieve the status of a specific job from the database.
 
-    :param job_id: The ID of the job to retrieve.
-    :type job_id: int
     :return: A JobStatus object representing the status of the specified job.
     :raises HTTPException: If the job with the given ID is not found (404 status code).
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("select_job_by_id"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
@@ -159,16 +157,12 @@ async def get_job_status(job_id: int):
 
 
 @app.post('/jobs/archive/{job_id}')
-async def archive_job(job_id: int):
+async def archive_job(job_id: int, tracer: Tracer, logger: Logger):
     """
     Archive a specific job in the database.
 
-    :param job_id: The ID of the job to archive.
-    :type job_id: int
     :raises HTTPException: If the job with the given ID is not found (404 status code).
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("update_job_by_id"):
         with DBQueryTimer("update"):
             async with app.async_pool.connection() as conn:
@@ -181,17 +175,13 @@ async def archive_job(job_id: int):
 
 @app.post("/parse_pdf")
 @require(settings.ai_worker_enabled, "This endpoint requires AI workers to be enabled.")
-async def parse_pdf(file: UploadFile) -> JobStatus:
+async def parse_pdf(file: UploadFile, tracer: Tracer) -> JobStatus:
     """
     Parse a PDF file and create a new job for processing.
 
-    :param file: The PDF file to be parsed.
-    :type file: UploadFile
     :return: A JobStatus object representing the newly created job.
     :raises HTTPException: If AI workers are not enabled.
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     job_timing = datetime.datetime.now(datetime.UTC)
     with tracer.start_as_current_span("insert_job"):
         with DBQueryTimer("select"):
@@ -202,6 +192,7 @@ async def parse_pdf(file: UploadFile) -> JobStatus:
                 await conn.commit()
     with tracer.start_as_current_span("send_rabbitmq_message"):
         connection, channel = rabbit_connection()
+        channel.queue_declare(queue=settings.ai_pdf_queue)
         channel.basic_publish(
             exchange="",
             routing_key=settings.ai_pdf_queue,
@@ -214,9 +205,45 @@ async def parse_pdf(file: UploadFile) -> JobStatus:
     connection.close()
     return JobStatus(id=job_id, status="pnd", datetime=job_timing)
 
+
+@app.post("/parse_screenshot")
+@require(settings.ai_worker_enabled, "This endpoint requires AI workers to be enabled.")
+def parse_screenshot(file: UploadFile, tracer: Tracer) -> str:
+    """
+    Parse a screenshot file and return latex representation.
+
+    :return: LaTeX string representing the formula on the screenshot.
+    """
+    content = file.file.read()
+    connection, channel = rabbit_connection()
+    channel.queue_declare(queue=settings.ai_latex_ocr_queue)
+    queue_id = uuid.uuid4().hex
+    with tracer.start_as_current_span("call_worker"):
+        channel.queue_declare(
+            queue=queue_id,
+            exclusive=True,
+            auto_delete=True,
+        )
+        channel.basic_publish(
+            exchange="",
+            routing_key=settings.ai_latex_ocr_queue,
+            body=content,
+            properties=pika.BasicProperties(
+                reply_to=queue_id,
+            )
+        )
+        response: str | None = None
+        def consume(ch: pika.adapters.blocking_connection.BlockingChannel, method, properties, body):
+            nonlocal response
+            response = body.decode("utf-8")
+            ch.stop_consuming()
+        channel.basic_consume(on_message_callback=consume, queue=queue_id, auto_ack=True)
+        channel.start_consuming()
+    return response
+
+
 @app.post("/compare")
 async def compare(formula: Formula):
-    logger = get_logger(__name__)
     tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("select_formulas"):
         with DBQueryTimer("select"):
@@ -231,9 +258,7 @@ async def compare(formula: Formula):
     return result
 
 @app.post("/compare_indexes")
-async def compare_indexes(formula: Formula):
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
+async def compare_indexes(formula: Formula, tracer: Tracer):
     with tracer.start_as_current_span("select_formulas"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:

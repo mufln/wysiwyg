@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     # AMQP instance used to communicate to the workers running ML models (only used if `ai_worker_enabled` checked)
     amqp_dsn: AmqpDsn | None = Field()
     # AMQP queue to send parsing requests to
-    ai_pdf_queue: Annotated[str, _ensure_alphabetic] | None = Field()
+    ai_pdf_queue: str | None = Field()
+    ai_latex_ocr_queue: str | None = Field()
     # Enables `/parse_pdf` endpoint for ML parsing of documents.
     ai_worker_enabled: bool = True
 
