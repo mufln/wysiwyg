@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class Formula(BaseModel):
     name: str
     latex: str
+    description: str
     source: str
 
 

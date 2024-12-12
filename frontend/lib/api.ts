@@ -5,6 +5,7 @@ export interface Formula {
     name: string;
     latex: string;
     source: string;
+    description: string;
 }
 
 export function useFormulas() {

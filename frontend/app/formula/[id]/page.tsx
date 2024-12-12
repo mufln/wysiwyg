@@ -30,7 +30,10 @@ function Formula() {
     }, [])
 
     if (!formula) {
-        return <div>Формула не найдена</div>
+        return(
+        <div >
+            <p className="mx-auto my-auto w-fit pt-52 text-2xl">Формула не найдена</p>
+        </div>)
     }
 
     return (
@@ -38,6 +41,7 @@ function Formula() {
             <h1 className="text-3xl font-bold mb-6">{formula.name}</h1>
             <div className="mb-4 p-4 border rounded bg-gray-100">
                 <div id="formula">{`\\[${formula.latex}\\]`}</div>
+                <div id="description">{formula.description}</div>
             </div>
             <Link href={formula.source} target="_blank" rel="noopener noreferrer"
                   className="text-blue-500 hover:underline">

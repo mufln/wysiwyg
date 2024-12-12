@@ -92,6 +92,27 @@ async def get_formulas() -> list[FormulaInDb]:
     return list(map(FormulaInDb.model_validate, all))
 
 
+@app.get("/formulas/{id}")
+async def get_formula(id: int):
+    """
+    Get a formula by its id.
+    :param id: The id of the formula to retrieve.
+    :type id: int
+    :return: A FormulaInDb object containing the details of the formula.
+    :rtype: FormulaInDb
+    """
+    logger = get_logger(__name__)
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("get_formula"):
+        with DBQueryTimer("select"):
+            async with app.async_pool.connection() as conn:
+                cur = conn.cursor(row_factory=dict_row)
+                await cur.execute("SELECT id, name, latex, source FROM formulas WHERE id = %s", (id,))
+                result = await cur.fetchone()
+    logger.info(f"Retrieved formula {id} from the database")
+    return FormulaInDb.model_validate(result)
+
+
 @app.post("/formulas")
 async def create_formula(formula: Formula):
     """
@@ -179,6 +200,7 @@ async def archive_job(job_id: int):
                     logger.info(f"Job {job_id} was not found in the database")
                     raise HTTPException(status_code=404)
 
+
 @app.post("/parse_pdf")
 @require(settings.ai_worker_enabled, "This endpoint requires AI workers to be enabled.")
 async def parse_pdf(file: UploadFile) -> JobStatus:
@@ -214,6 +236,7 @@ async def parse_pdf(file: UploadFile) -> JobStatus:
     connection.close()
     return JobStatus(id=job_id, status="pnd", datetime=job_timing)
 
+
 @app.post("/compare")
 async def compare(formula: Formula):
     logger = get_logger(__name__)
@@ -229,6 +252,7 @@ async def compare(formula: Formula):
         for db_formula in all
     ]
     return result
+
 
 @app.post("/compare_indexes")
 async def compare_indexes(formula: Formula):
