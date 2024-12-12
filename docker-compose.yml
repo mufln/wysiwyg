@@ -39,6 +39,7 @@ services:
       - POSTGRES_POOL_SIZE=64
       - AMQP_DSN=amqp://guest:guest@rabbit
       - AI_PDF_QUEUE=pdf_processing
+      - AI_LATEX_OCR_QUEUE=image_latex
       - AI_WORKER_ENABLED=True
       - JAEGER_ENABLED=True
       - JAEGER_AGENT_HOST=jaeger
@@ -65,9 +66,12 @@ services:
       - jaeger
       - postgres
     environment:
-      - CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
-      - RABBITMQ_HOST=amqp://guest:guest@rabbit
-      - RABBITMQ_QUEUE=pdf_processing
+      - POSTGRES_DSN=postgresql://postgres:postgres@postgres:5432/postgres
+      - AMQP_DSN=amqp://guest:guest@rabbit
+      - AI_PDF_QUEUE=pdf_processing
+      - AI_LATEX_OCR_QUEUE=image_latex
+      - OLLAMA_URL=ollama:11434
+      - OLLAMA_MODEL=llama3.2
     networks: 
       - default
 networks:

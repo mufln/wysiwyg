@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pika
 import os
 import tempfile
@@ -8,33 +10,36 @@ from psycopg.rows import dict_row
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
+from PIL import Image
+from pix2tex.cli import LatexOCR
 
 print("Please, wait! Models are now loading (it will load models from hf.co on the first startup, next loadings will be much faster since they will be loaded from disk.")
 converter = PdfConverter(
     artifact_dict=create_model_dict(),
 )
+model = LatexOCR()
 print("Done loading models!")
 
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
-RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE")
-CONNECTION_STRING = os.getenv("CONNECTION_STRING")
+AMQP_DSN = os.getenv("AMQP_DSN")
+AI_PDF_QUEUE = os.getenv("AI_PDF_QUEUE")
+AI_LATEX_OCR_QUEUE = os.getenv("AI_LATEX_OCR_QUEUE")
+POSTGRES_DSN = os.getenv("POSTGRES_DSN")
 OLLAMA_URL = os.getenv("OLLAMA_URL")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
 
 
-client = ollama.Client()
+client = ollama.Client(OLLAMA_URL)
 
 def connect_to_rabbitmq():
-    connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_HOST))
+    connection = pika.BlockingConnection(pika.URLParameters(AMQP_DSN))
     channel = connection.channel()
-    channel.queue_declare(queue=RABBITMQ_QUEUE)
+    channel.queue_declare(queue=AI_PDF_QUEUE)
     return connection, channel
 
 def connect_to_database() -> psycopg.Connection:
-    return psycopg.connect(CONNECTION_STRING)
+    return psycopg.connect(POSTGRES_DSN)
 
-def process_message(ch, method, properties, body):
-    print(" [x] Received job %s" % properties.correlation_id)
+def process_pdf(_ch, _method, properties, body):
     db = connect_to_database()
     ids = []
     db.execute("UPDATE jobs SET status='prc' WHERE id=%s", (int(properties.correlation_id),))
@@ -82,13 +87,21 @@ def process_message(ch, method, properties, body):
     finally:
         db.close()
         os.unlink(temp_pdf_path)
-    
+
+
+def process_image(ch: pika.adapters.blocking_connection.BlockingChannel, _method, properties, body):
+    img = Image.open(BytesIO(body))
+    latex = model(img)
+    ch.basic_publish(exchange='', routing_key=properties.reply_to, body=latex.encode("utf-8"))
 
 def main():
     client.pull(OLLAMA_MODEL)
     print('Worker is waiting for messages. To exit press CTRL+C')
     connection, channel = connect_to_rabbitmq()
-    channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=process_message)
+    channel.queue_declare(queue=AI_PDF_QUEUE)
+    channel.queue_declare(queue=AI_LATEX_OCR_QUEUE)
+    channel.basic_consume(queue=AI_PDF_QUEUE, on_message_callback=process_pdf, auto_ack=True)
+    channel.basic_consume(queue=AI_LATEX_OCR_QUEUE, on_message_callback=process_image, auto_ack=True)
     channel.start_consuming()
 
 if __name__ == '__main__':
