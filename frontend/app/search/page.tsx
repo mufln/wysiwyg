@@ -1,16 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import * as React from 'react';
 // @ts-ignore
 import style from '@edtr-io/mathquill/build/mathquill.css';
 import Link from 'next/link'
-import { Formula, useFormulas } from "@/lib/api";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-const EquationEditor = dynamic(() => import('@/components/EquationEditor'), { ssr: false });
-import { MathJax, MathJaxContext } from "better-react-mathjax";
+import {Formula, useFormulas} from "@/lib/api";
+import {QueryClient, QueryClientProvider, useQuery} from "@tanstack/react-query";
+
+const EquationEditor = dynamic(() => import('@/components/EquationEditor'), {ssr: false});
+import {MathJax, MathJaxContext} from "better-react-mathjax";
 import dynamic from "next/dynamic";
-import { CardContent, Card, CardHeader, CardFooter } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
+import {CardContent, Card, CardHeader, CardFooter} from '@/components/ui/card';
+import {useRouter} from 'next/navigation';
+import {Toggle} from "@/components/ui/toggle";
+import {Switch} from "@/components/ui/switch";
 
 function addStyles() {
     if (document.getElementById('react-mathquill-styles') == null) {
@@ -35,28 +38,61 @@ function highlightMatches(latex: string, searchLatex: string) {
 
 function Search() {
     const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('')
-    const { data: formulas, isLoading, isError } = useFormulas();
-    const [filteredFormulas, setFilteredFormulas] = useState<Formula[]>([])
-    const [show, setShow] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('');
+    const [deep, setDeep] = useState(false);
+    const {data: formulasIndexes} = useQuery({
+        queryKey: ['formulas-index' + searchTerm],
+        queryFn: async () => {
+            let q: Formula = {
+                name: "",
+                latex: searchTerm,
+                description: "",
+                source: ""
+            }
+            let res = await fetch('/api/compare_indexes', {
+                method: "POST",
+                body: JSON.stringify(q),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            return await res.json()
+        },
+        enabled: deep
+    })
+    const {data: formulas, isLoading, isError} = useFormulas();
+    const [filteredFormulas, setFilteredFormulas] = useState<Formula[]>([]);
+    const [show, setShow] = useState(false);
 
     useEffect(() => {
         addStyles();
         setShow(true)
     }, [])
     useEffect(() => {
-        setFilteredFormulas(
-            (formulas ? formulas : []).filter((formula: any) =>
+        let forms;
+        if (formulasIndexes == null)
+            return;
+        if (!deep)
+            forms = (formulas ? formulas : []).filter((formula: any) =>
                 formula.latex.toLowerCase().replace(" ", "").includes(searchTerm.toLowerCase().replace(" ", ""))
-            )
-        )
-    }, [searchTerm, formulas])
+            );
+        else {
+            console.log(formulasIndexes)
+            if (formulasIndexes != null)
+                forms = formulasIndexes.filter((x: any) => (x.indexes as number[]).length != 0).map((x: {formula: string}) => ({ id: ''+Math.random(), latex: x.formula }))
+            else forms = []
+        }
+        setFilteredFormulas(forms)
+    }, [searchTerm, formulas, formulasIndexes])
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Поиск формулы</h1>
+            <div className="flex flex-row justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-center h-min">Поиск формулы</h1>
+                <span><Switch onCheckedChange={setDeep}/> Глубокий поиск</span>
+            </div>
             {/*<div className="mb-4 border rounded">*/}
-            {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm} />}
+            {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm}/>}
             {/*</div>*/}
             <ul className="space-y-4 gap-4 my-4 flex flex-col">
                 {filteredFormulas.map(formula => (
@@ -69,7 +105,7 @@ function Search() {
                         </CardContent>
                         <CardFooter>
                             <Link href={formula.source} target="_blank" rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline">
+                                  className="text-blue-500 hover:underline">
                                 Source
                             </Link>
                         </CardFooter>
@@ -89,7 +125,7 @@ export default function Page() {
     let client = new QueryClient()
     return <QueryClientProvider client={client}>
         <MathJaxContext>
-            <SearchNoSSR />
+            <SearchNoSSR/>
         </MathJaxContext>
     </QueryClientProvider>
 }

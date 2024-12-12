@@ -2,7 +2,7 @@ const nextConfig = {
     rewrites: async() => [
         {
             source: "/api/:path*",
-            destination: "http://backend:8000/:path*"
+            destination: "http://localhost:8000/:path*"
         }
     ],
     output: 'standalone',

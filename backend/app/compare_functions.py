@@ -69,9 +69,9 @@ def percent(latex1, latex2):
     count_match_size = 0
     for i in result:
         count_match_size += i[2]
-    result_persentage = count_match_size / max(len(l1), len(l2)) * 100
+    result_percentage = count_match_size / max(len(l1), len(l2)) * 100
 
-    return result_persentage
+    return result_percentage
 
 
 
@@ -140,7 +140,6 @@ def compare_two_blocks(subtoken1, subtoken2, block, result_block=None):
         result_block = []
     start1 = block[0]
     start2 = block[1]
-    print(start1, start2)
     size = block[2]
     result_appendings = []
 

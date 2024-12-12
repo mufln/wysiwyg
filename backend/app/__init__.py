@@ -95,7 +95,7 @@ async def get_formulas(logger: Logger, tracer: Tracer) -> list[FormulaInDb]:
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                await cur.execute("SELECT id, name, latex, source FROM formulas")
+                await cur.execute("SELECT id, name, latex, source, description FROM formulas")
                 all = await cur.fetchall()
     logger.info(f"Retrieved {len(all)} formulas from the database")
     return list(map(FormulaInDb.model_validate, all))
@@ -116,7 +116,7 @@ async def get_formula(id: int):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                await cur.execute("SELECT id, name, latex, source FROM formulas WHERE id = %s", (id,))
+                await cur.execute("SELECT id, name, latex, source, description FROM formulas WHERE id = %s", (id,))
                 result = await cur.fetchone()
     logger.info(f"Retrieved formula {id} from the database")
     return FormulaInDb.model_validate(result)
@@ -132,8 +132,8 @@ async def create_formula(formula: Formula, tracer: Tracer, logger: Logger):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
                 await cur.execute(
-                    "INSERT INTO formulas(name, latex, source) VALUES (%s, %s, %s)",
-                    (formula.name, formula.latex, formula.source),
+                    "INSERT INTO formulas(name, latex, source, description) VALUES (%s, %s, %s, %s)",
+                    (formula.name, formula.latex, formula.source, formula.description),
                 )
                 await conn.commit()
     logger.info(f"Created formula {formula.name} in the database")
@@ -271,8 +271,8 @@ async def compare(formula: Formula):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                cur.execute("SELECT latex FROM formulas")
-                all = [row["latex"] for row in cur.fetchall()]
+                await cur.execute("SELECT latex FROM formulas")
+                all = [row["latex"] for row in await cur.fetchall()]
     result = [
         {"formula": db_formula, "percent": percent(formula.latex, db_formula)}
         for db_formula in all
@@ -286,8 +286,8 @@ async def compare_indexes(formula: Formula, tracer: Tracer):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                cur.execute("SELECT latex FROM formulas")
-                all = [row["latex"] for row in cur.fetchall()]
+                await cur.execute("SELECT latex FROM formulas")
+                all = [row["latex"] for row in await cur.fetchall()]
     result = [
         {"formula": db_formula, "indexes": find_indexes(db_formula, formula.latex)}
         for db_formula in all
