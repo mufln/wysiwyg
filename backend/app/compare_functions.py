@@ -58,7 +58,7 @@ def percent(latex1, latex2):
 
 # Работа с индексами #
 def split_latex_expression(latex_str):
-    # Регулярное выражение для более точного разбиения LaTeX-выражений
+    # Регулярное выражение для разбиения LaTeX-выражений
     pattern = r'(\\[a-zA-Z]+|\d+\.?\d*|[a-zA-Z]+|[(){}^_]|[\+\-\*/=])'
     tokens = re.findall(pattern, latex_str)
     return tokens
@@ -172,8 +172,8 @@ def find_common_blocks(tokens1, abstracted_tokens1, tokens2, abstracted_tokens2)
                         if sub_block not in seen_blocks:
                             result.append(sub_block)
                             seen_blocks.add(sub_block)
-                i -= size + 1
-                j -= size + 1
+                i -= size - 1
+                j -= size
             j -= 1
         i -= 1
     result.sort(key=lambda x: x[2], reverse=True)
