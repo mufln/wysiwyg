@@ -203,7 +203,7 @@ def find_common_blocks(tokens1, abstracted_tokens1, tokens2, abstracted_tokens2)
     n, m = len(abstracted_tokens1), len(abstracted_tokens2)
     dp = [[0] * (m + 1) for _ in range(n + 1)]
 
-    # Заполняем DP таблицу  // Diabl: wtf is this?
+    # Заполняем DP таблицу  // Diabl: wtf is this?  // leshenya: dynamic programming table
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             if abstracted_tokens1[i - 1] == abstracted_tokens2[j - 1]:
