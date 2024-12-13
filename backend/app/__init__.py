@@ -286,10 +286,11 @@ async def compare_indexes(formula: Formula, tracer: Tracer):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                await cur.execute("SELECT latex FROM formulas")
-                all = [row["latex"] for row in await cur.fetchall()]
+                await cur.execute("SELECT name, latex, source, description FROM formulas")
+                all = await cur.fetchall()
     result = [
-        {"formula": db_formula, "indexes": find_indexes(db_formula, formula.latex)}
+        {"name": db_formula.name, "latex": db_formula.latex, "source": db_formula.source,
+         "description": db_formula.description, "indexes": find_indexes(db_formula.latex, formula.latex)}
         for db_formula in all
     ]
     return result
