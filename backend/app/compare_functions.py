@@ -74,7 +74,6 @@ def percent(latex1, latex2):
     return result_percentage
 
 
-
 def split_latex_expression(latex_str: str) -> list[str]:
     """
     Separate input latex expression into a list of separate tokens.
@@ -108,13 +107,19 @@ def abstract_tokens(tokens):
     :param tokens: List of tokens
     :return: Abstracted tokens, indexed abstracted tokens, and variable mapping
     """
+    greek_letters = {'\\alpha', '\\beta', '\\gamma', '\\delta', '\\epsilon', '\\zeta', '\\eta', '\\theta',
+                     '\\iota', '\\kappa', '\\lambda', '\\mu', '\\nu', '\\xi', '\\pi', '\\rho', '\\sigma', '\\tau',
+                     '\\upsilon', '\\phi', '\\chi', '\\psi', '\\omega', '\\Gamma', '\\Delta', '\\Epsilon',
+                     '\\Zeta', '\\Eta', '\\Theta', '\\Iota', '\\Kappa', '\\Lambda', '\\Mu', '\\Nu', '\\Xi',
+                     '\\Pi', '\\Rho', '\\Sigma', '\\Tau', '\\Upsilon', '\\Phi', '\\Chi', '\\Psi', '\\Omega'
+                     }
     abstracted_indexed = []
     abstracted = []
     var_map = {}
     var_count = 1
 
     for token in tokens:
-        if re.match(r'^[a-zA-Z]+$', token):
+        if re.match(r'^[a-zA-Z]+$', token) or token in greek_letters:
             if token not in var_map:
                 var_map[token] = f'VAR{var_count}'
                 var_count += 1
@@ -253,4 +258,3 @@ def find_indexes(formula1: str, formula2: str) -> list[(int, int)]:
         end_index = len(full_string) + full_string.count('\\')
         result.append((start_index, end_index))
     return result
-
