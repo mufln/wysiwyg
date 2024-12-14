@@ -1,5 +1,5 @@
 'use client'
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import * as React from 'react';
 // @ts-ignore
 import style from '@edtr-io/mathquill/build/mathquill.css';
@@ -40,6 +40,7 @@ function Search() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [deep, setDeep] = useState(false);
+    const ref = useRef(null);
     const {data: formulasIndexes} = useQuery({
         queryKey: ['formulas-index' + searchTerm],
         queryFn: async () => {
@@ -79,12 +80,19 @@ function Search() {
         else {
             console.log(formulasIndexes)
             if (formulasIndexes != null)
-                forms = formulasIndexes.filter((x: any) => (x.indexes as number[]).length != 0).map((x: {formula: string}) => ({ id: ''+Math.random(), latex: x.formula }))
+                forms = formulasIndexes.filter((x: any) => (x.indexes as number[]).length != 0).map((x: { formula: any }) => ({
+                    id: '' + x.formula.id,
+                    latex: x.formula.latex,
+                    source: x.formula.source,
+                    name: x.formula.name
+                }))
             else forms = []
         }
         setFilteredFormulas(forms)
     }, [searchTerm, formulas, formulasIndexes])
-
+    const handleMathQuillChange = (mathField: any) => {
+        setSearchTerm(mathField.latex());
+    };
     return (
         <div className="max-w-2xl mx-auto">
             <div className="flex flex-row justify-between items-center mb-6">
@@ -92,7 +100,7 @@ function Search() {
                 <span><Switch onCheckedChange={setDeep}/> Глубокий поиск</span>
             </div>
             {/*<div className="mb-4 border rounded">*/}
-            {show && <EquationEditor latex={searchTerm} onChange={setSearchTerm}/>}
+            {show && <EquationEditor latex={searchTerm} onChange={handleMathQuillChange} mathFieldRef={ref}/>}
             {/*</div>*/}
             <ul className="space-y-4 gap-4 my-4 flex flex-col">
                 {filteredFormulas.map(formula => (

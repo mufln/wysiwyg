@@ -18,7 +18,7 @@ export const mathFunctions = [
     category: "Алгебра",
     functions: [
       { label: "√", value: "\\sqrt{}" },
-      { label: "∛", value: "\\sqrt[3]{}" },
+      { label: "∛", value: " \\sqrt[3]{} " },
       { label: "x²", value: " x^2" },
       { label: "x³", value: " x^3" },
       { label: "xⁿ", value: " x^{2}" },

@@ -11,6 +11,7 @@ import {useRouter} from "next/navigation";
 import MathKeyboard from "@/app/editor/keyboard/MathKeyboard";
 import {Button} from "@/components/ui/button";
 import html2canvas from 'html2canvas';
+import {Upload} from "lucide-react";
 
 function addStyles() {
     if (document.getElementById('react-mathquill-styles') == null) {
@@ -29,15 +30,24 @@ const EquationEditor = dynamic(() => import('@/components/EquationEditor'), {ssr
 
 function Editor() {
     const router = useRouter()
-    const [latex, setLatex] = useState('f(x) = a')
+    const [latex, setLatex] = useState('')
     const [name, setName] = useState('')
     const [source, setSource] = useState('')
     const [description, setDescription] = useState('')
     let createFormula = useCreateFormula();
     useEffect(() => addStyles())
     const mathRef = useRef<HTMLDivElement>(null);
+    const mathFieldRef = useRef<any>(null);
+
     const handleInsert = (value: string) => {
-        setLatex((prev) => prev + value);
+        if (mathFieldRef.current) {
+            mathFieldRef.current.write(value);
+            mathFieldRef.current.focus();
+        }
+    };
+
+    const handleMathQuillChange = (mathField: any) => {
+        setLatex(mathField.latex());
     };
 
     const handleDownload = async () => {
@@ -72,7 +82,7 @@ function Editor() {
         const file = event.target.files?.[0];
         if (file) {
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('file', file);
 
             try {
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/parse_screenshot`, {
@@ -85,13 +95,17 @@ function Editor() {
                 }
 
                 const data = await response.json();
-                setLatex(data);
+                setLatex(data.latex);
+                if (mathFieldRef.current) {
+                    mathFieldRef.current.latex(data.latex);
+                }
             } catch (error) {
                 console.error('Ошибка:', error);
                 alert('Произошла ошибка при обработке изображения. Пожалуйста, попробуйте еще раз.');
             }
         }
     };
+
     return (
         <div className=" flex flex-col justify-center">
             <div className="relative py-3 w-full">
@@ -107,7 +121,7 @@ function Editor() {
                         <div className="py-6 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
                             <p>Введите математическое выражение:</p>
                             <div ref={mathRef} className="relative pt-2z">
-                                <EquationEditor latex={latex} onChange={setLatex}/>
+                                <EquationEditor latex={latex} onChange={handleMathQuillChange} mathFieldRef={mathFieldRef}/>
                             </div>
                             <textarea style={{resize: 'none'}} className="w-full h-16 p-2 text-sm border rounded"
                                       placeholder="Описание формулы"
@@ -130,6 +144,19 @@ function Editor() {
                         <Button onClick={handleDownload} className="bg-gray-800 text-white hover:bg-gray-700">
                             Скачать как PNG
                         </Button>
+                        <Button
+                            onClick={() => document.getElementById('imageUpload')?.click()}
+                            className="flex bg-gray-800 hover:bg-gray-700 items-center justify-center">
+                            <Upload className="h-4 w-4 mr-2" />
+                            Загрузить формулу
+                        </Button>
+                        <input
+                            type="file"
+                            id="imageUpload"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                        />
                     </div>
 
                 </div>

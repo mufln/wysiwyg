@@ -21,7 +21,7 @@ export function useCreateFormula() {
     const client = useQueryClient();
     return useMutation({
         mutationFn: async (formula: Formula) => {
-            fetch(process.env["NEXT_PUBLIC_API_URL"] + "/formulas", {
+            fetch(process.env.NEXT_PUBLIC_API_URL + "/formulas", {
                 method: "POST",
                 body: JSON.stringify(formula),
                 headers: { "Content-Type": "application/json" },
