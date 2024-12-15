@@ -52,7 +52,7 @@ function Editor() {
 
     const handleDownload = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/export_png`, {
+            const response = await fetch(`/api/export_png`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ function Editor() {
             formData.append('file', file);
 
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/parse_screenshot`, {
+                const response = await fetch(`/api/parse_screenshot`, {
                     method: 'POST',
                     body: formData,
                 });

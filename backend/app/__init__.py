@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -36,8 +37,9 @@ async def lifespan(_app: FastAPI):
         assert (
                 settings.ai_pdf_queue is not None
         ), "AI workers require queue to be specified"
-        app.client: ollama.Client = ollama.Client()
+        app.client: ollama.Client = ollama.Client(settings.ollama_dsn)
         if settings.ollama_model:
+            await asyncio.sleep(10)
             app.client.pull(settings.ollama_model)
     app.async_pool = AsyncConnectionPool(settings.postgres_dsn.unicode_string(), max_size=settings.postgres_pool_size)
     yield
