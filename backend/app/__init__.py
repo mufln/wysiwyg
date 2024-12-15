@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import datetime
 from typing import Annotated
 
+import ollama
 import opentelemetry.trace
 import pika
 from fastapi import FastAPI, UploadFile, HTTPException, Depends
@@ -35,6 +36,7 @@ async def lifespan(_app: FastAPI):
         assert (
                 settings.ai_pdf_queue is not None
         ), "AI workers require queue to be specified"
+        app.client: ollama.Client = ollama.Client()
     app.async_pool = AsyncConnectionPool(settings.postgres_dsn.unicode_string(), max_size=settings.postgres_pool_size)
     yield
     await app.async_pool.close()
@@ -102,23 +104,20 @@ async def get_formulas(logger: Logger, tracer: Tracer) -> list[FormulaInDb]:
 
 
 @app.get("/formulas/{id}")
-async def get_formula(id: int):
+async def get_formula(formula_id: int, logger: Logger, tracer: Tracer):
     """
     Get a formula by its id.
-    :param id: The id of the formula to retrieve.
-    :type id: int
+
     :return: A FormulaInDb object containing the details of the formula.
     :rtype: FormulaInDb
     """
-    logger = get_logger(__name__)
-    tracer = trace.get_tracer(__name__)
     with tracer.start_as_current_span("get_formula"):
         with DBQueryTimer("select"):
             async with app.async_pool.connection() as conn:
                 cur = conn.cursor(row_factory=dict_row)
-                await cur.execute("SELECT id, name, latex, source, description FROM formulas WHERE id = %s", (id,))
+                await cur.execute("SELECT id, name, latex, source, description FROM formulas WHERE id = %s", (formula_id,))
                 result = await cur.fetchone()
-    logger.info(f"Retrieved formula {id} from the database")
+    logger.info(f"Retrieved formula {formula_id} from the database")
     return FormulaInDb.model_validate(result)
 
 
@@ -293,3 +292,15 @@ async def compare_indexes(formula: Formula, tracer: Tracer):
         for db_formula in all
     ], key=lambda x:sum([i[1]-i[0] if i != None else 0 for i in x['indexes']]) if x['indexes'] else 0, reverse=True)
     return result
+
+
+@app.post("/message")
+@require(settings.ai_worker_enabled, "This endpoint requires AI workers to be enabled.")
+async def messages(messages: list[ollama.Message], tracer: Tracer):
+    with tracer.start_as_current_span("ollama_call"):
+        app.client: ollama.Client
+        response: ollama.ChatResponse = app.client.chat(model=settings.ollama_model, messages=messages)
+        return response.message.content
+        
+
+

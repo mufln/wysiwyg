@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     postgres_pool_size: int = 64
     # AMQP instance used to communicate to the workers running ML models (only used if `ai_worker_enabled` checked)
     amqp_dsn: AmqpDsn | None = Field()
+    ollama_dsn: str | None = Field()
+    ollama_model: str | None = Field()
     # AMQP queue to send parsing requests to
     ai_pdf_queue: str | None = Field()
     ai_latex_ocr_queue: str | None = Field()
