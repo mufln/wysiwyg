@@ -1,21 +1,32 @@
 import pathlib
-import psycopg
 from sys import argv
+
+import psycopg
+
 
 def migrate(db: psycopg.connection, desired_version: int = None):
 
     print("Checking database version...")
-    if not db.execute("select * from information_schema.tables where table_name=%s", ('__migrations__',)).rowcount:
+    if not db.execute(
+        "select * from information_schema.tables where table_name=%s",
+        ("__migrations__",),
+    ).rowcount:
         print("Database is empty, creating...")
-        db.execute("CREATE TABLE IF NOT EXISTS __migrations__ (version SERIAL PRIMARY KEY)")
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS __migrations__ (version SERIAL PRIMARY KEY)"
+        )
     cursor = db.cursor()
     cursor.execute("SELECT version FROM __migrations__ ORDER BY version DESC LIMIT 1")
     last_version = cursor.fetchone()
     last_version = last_version[0] if last_version else 0
     print(f"Database version: {last_version}")
     migration_files = {
-        (int((sp := f.stem.split("_", 3))[0]), sp[1] if sp[1] in ["up", "down"] else exit(1)): f
-        for f in pathlib.Path("./migrations").iterdir() if f.is_file() and f.name.lower().endswith(".sql")
+        (
+            int((sp := f.stem.split("_", 3))[0]),
+            sp[1] if sp[1] in ["up", "down"] else exit(1),
+        ): f
+        for f in pathlib.Path("./migrations").iterdir()
+        if f.is_file() and f.name.lower().endswith(".sql")
     }
     if desired_version is not None:
         if desired_version > last_version:
@@ -33,26 +44,32 @@ def migrate(db: psycopg.connection, desired_version: int = None):
             if (version, "up") not in migration_files:
                 print(f"No migration for version {version}, exiting...")
                 exit(1)
-            print(f"Migrating to version {version} // {migration_files[version, 'up'].stem.split('_')[2]}")
+            print(
+                f"Migrating to version {version} // {migration_files[version, 'up'].stem.split('_')[2]}"
+            )
             with open(migration_files[version, "up"].absolute(), "r") as f:
                 sql = f.read()
                 cursor.execute(sql)
-            cursor.execute("INSERT INTO __migrations__ (version) VALUES (%s)", (version,))
+            cursor.execute(
+                "INSERT INTO __migrations__ (version) VALUES (%s)", (version,)
+            )
     elif action == "down":
         for version in range(last_version, desired_version, -1):
             if (version, "down") not in migration_files:
                 print(f"No migration for version {version}, exiting...")
                 exit(1)
             if version - 1 == 0:
-                print("Migrating to version 0")
+                print("Migrating to version 0 // empty")
             else:
                 print(
-                    f"Migrating to version {version - 1} // {migration_files[version - 1, 'down'].stem.split('_')[0]}")
+                    f"Migrating to version {version - 1} // {migration_files[version - 1, 'down'].stem.split('_')[2]}"
+                )
             with open(migration_files[version, "down"].absolute(), "r") as f:
                 sql = f.read()
                 cursor.execute(sql)
             cursor.execute("DELETE FROM __migrations__ WHERE version = %s", (version,))
     db.commit()
+
 
 def main(args):
     match len(args):
@@ -75,6 +92,7 @@ def main(args):
             exit(1)
     migrate(db, desired_version)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     args = argv[1:]
     main(args)

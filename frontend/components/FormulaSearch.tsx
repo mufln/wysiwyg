@@ -19,7 +19,7 @@ export default function FormulaSearch() {
 
   return (
     <div className="border rounded-lg p-4 bg-white shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Formula Search</h2>
+      <h2 className="text-2xl font-bold mb-4">Поиск формулы</h2>
       <div className="relative">
         <input
           type="text"
@@ -36,7 +36,7 @@ export default function FormulaSearch() {
             <h3 className="font-bold">{formula.name}</h3>
             <p className="text-sm text-gray-600">{formula.latex}</p>
             <Link href={formula.source} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
-              Source
+              Источник
             </Link>
           </li>
         ))}

@@ -1,0 +1,84 @@
+services:
+  postgres:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data
+    networks:
+      - default
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+  rabbit:
+    image: rabbitmq
+    ports:
+      - "5672:5672"
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ~/.ollama:/root/.ollama
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbit
+      - jaeger
+      - postgres
+      - ollama
+    environment:
+      - OLLAMA_MODEL=mistral-nemo:12b-instruct-2407-q2_K
+      - OLLAMA_DSN=ollama:11434
+      - POSTGRES_DSN=postgresql://postgres:postgres@postgres:5432/postgres
+      - POSTGRES_POOL_SIZE=64
+      - AMQP_DSN=amqp://guest:guest@rabbit
+      - AI_PDF_QUEUE=pdf_processing
+      - AI_LATEX_OCR_QUEUE=image_latex
+      - AI_WORKER_ENABLED=True
+      - JAEGER_ENABLED=True
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=4318
+    networks:
+      - default
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      API_HOST: "http://backend:8000"
+    networks:
+      - default
+  worker:
+    build: ./worker
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    depends_on:
+      - rabbit
+      - ollama
+      - jaeger
+      - postgres
+    environment:
+      - POSTGRES_DSN=postgresql://postgres:postgres@postgres:5432/postgres
+      - AMQP_DSN=amqp://guest:guest@rabbit
+      - AI_PDF_QUEUE=pdf_processing
+      - AI_LATEX_OCR_QUEUE=image_latex
+      - OLLAMA_URL=ollama:11434
+      - OLLAMA_MODEL=llama3.2
+    networks: 
+      - default
+networks:
+  default:
+    driver: bridge
+volumes:
+  data:
