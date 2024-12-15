@@ -37,6 +37,8 @@ async def lifespan(_app: FastAPI):
                 settings.ai_pdf_queue is not None
         ), "AI workers require queue to be specified"
         app.client: ollama.Client = ollama.Client()
+        if settings.ollama_model:
+            app.client.pull(settings.ollama_model)
     app.async_pool = AsyncConnectionPool(settings.postgres_dsn.unicode_string(), max_size=settings.postgres_pool_size)
     yield
     await app.async_pool.close()

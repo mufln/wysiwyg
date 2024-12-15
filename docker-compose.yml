@@ -35,6 +35,8 @@ services:
       - jaeger
       - postgres
     environment:
+      - OLLAMA_MODEL=mistral-nemo
+      - OLLAMA_DSN=ollama:11434
       - POSTGRES_DSN=postgresql://postgres:postgres@postgres:5432/postgres
       - POSTGRES_POOL_SIZE=64
       - AMQP_DSN=amqp://guest:guest@rabbit
