@@ -30,7 +30,7 @@ const EquationEditor = dynamic(() => import('@/components/EquationEditor'), {ssr
 
 function Editor() {
     const router = useRouter()
-    const [latex, setLatex] = useState('')
+    const [latex, setLatex] = useState('\\color{red}{x} + \\color{blue}{y}')
     const [name, setName] = useState('')
     const [source, setSource] = useState('')
     const [description, setDescription] = useState('')

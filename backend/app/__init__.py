@@ -288,8 +288,8 @@ async def compare_indexes(formula: Formula, tracer: Tracer):
                 cur = conn.cursor(row_factory=dict_row)
                 await cur.execute("SELECT id, name, latex, source, description FROM formulas")
                 all = await cur.fetchall()
-    result = [
+    result = sorted([
         {"formula": db_formula, "indexes": find_indexes(db_formula['latex'], formula.latex)}
         for db_formula in all
-    ]
+    ], key=lambda x:sum([i[1]-i[0] if i != None else 0 for i in x['indexes']]) if x['indexes'] else 0, reverse=True)
     return result

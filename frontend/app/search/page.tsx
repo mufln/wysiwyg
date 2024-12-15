@@ -27,6 +27,8 @@ function addStyles() {
     }
 }
 
+
+
 function highlightMatches(latex: string, searchLatex: string) {
     const parts = latex.split(new RegExp(`(${searchLatex})`, 'gi'))
     return parts.map((part, index) =>
@@ -36,10 +38,23 @@ function highlightMatches(latex: string, searchLatex: string) {
     )
 }
 
+function processIndexes(latex: string, indexes: any){
+    let result = "";
+    let min = 0;
+    for (const index of indexes.sort((i : any) => i[0])) {
+        result += "\\color{black}{" + latex.substring(min, index[0]) +"}" + "\\color{red}{" + latex.substring(index[0], index[1]) + "}";
+        min = index[1];
+        console.log(index)
+    }
+    return result;
+}
+
+
+
 function Search() {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
-    const [deep, setDeep] = useState(false);
+    const [deep, setDeep] = useState(true);
     const ref = useRef(null);
     const {data: formulasIndexes} = useQuery({
         queryKey: ['formulas-index' + searchTerm],
@@ -65,6 +80,7 @@ function Search() {
     const [filteredFormulas, setFilteredFormulas] = useState<Formula[]>([]);
     const [show, setShow] = useState(false);
 
+
     useEffect(() => {
         addStyles();
         setShow(true)
@@ -80,9 +96,9 @@ function Search() {
         else {
             console.log(formulasIndexes)
             if (formulasIndexes != null)
-                forms = formulasIndexes.filter((x: any) => (x.indexes as number[]).length != 0).map((x: { formula: any }) => ({
+                forms = formulasIndexes.filter((x: any) => (x.indexes as number[]).length != 0).map((x: { formula: any, indexes: any }) => ({
                     id: '' + x.formula.id,
-                    latex: x.formula.latex,
+                    latex: processIndexes(x.formula.latex, x.indexes),
                     source: x.formula.source,
                     name: x.formula.name
                 }))

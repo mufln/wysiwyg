@@ -6,6 +6,7 @@ export interface Formula {
     latex: string;
     source: string;
     description: string;
+    indexes?: number[];
 }
 
 export function useFormulas() {

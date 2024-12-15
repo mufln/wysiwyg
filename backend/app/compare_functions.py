@@ -257,4 +257,4 @@ def find_indexes(formula1: str, formula2: str) -> list[(int, int)]:
         full_string = ''.join(tokens1[:start1 + size])
         end_index = len(full_string) + full_string.count('\\')
         result.append((start_index, end_index))
-    return result
+    return sorted(result, key=lambda x: x[0])
