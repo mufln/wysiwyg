@@ -52,7 +52,7 @@ export default function PDFImportPage() {
             }
 
             const formData = new FormData()
-            formData.append('file   ', fileToSend)
+            formData.append('file', fileToSend)
 
             const response = await fetch('/api/parse_pdf', {
                 method: 'POST',

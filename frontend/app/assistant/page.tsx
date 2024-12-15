@@ -34,12 +34,15 @@ export default function Chat() {
         setIsLoading(true)
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/message`, {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 100000000000000000)
+            const response = await fetch(`/api/message`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify([...messages, userMessage]),
+                signal: controller.signal
             })
 
             if (!response.ok) {

@@ -42,11 +42,13 @@ function processIndexes(latex: string, indexes: any){
     let result = "";
     let min = 0;
     for (const index of indexes.sort((i : any) => i[0])) {
-        result += "\\color{black}{" + latex.substring(min, index[0]) +"}" + "\\color{red}{" + latex.substring(index[0], index[1]) + "}";
+        console.log(latex.substring(min, index[0]))
+        console.log(latex.substring(index[0], index[1]))
+        result += " \\color{black} " + latex.substring(min, index[0]) +"" + " \\color{red}" + latex.substring(index[0], index[1]) + "";
         min = index[1];
         console.log(index)
     }
-    return result;
+    return latex;
 }
 
 
@@ -113,7 +115,7 @@ function Search() {
         <div className="max-w-2xl mx-auto">
             <div className="flex flex-row justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-center h-min">Поиск формулы</h1>
-                <span><Switch onCheckedChange={setDeep}/> Глубокий поиск</span>
+                {/*<span><Switch onCheckedChange={setDeep}/> Глубокий поиск</span>*/}
             </div>
             {/*<div className="mb-4 border rounded">*/}
             {show && <EquationEditor latex={searchTerm} onChange={handleMathQuillChange} mathFieldRef={ref}/>}

@@ -51,31 +51,13 @@ function Editor() {
     };
 
     const handleDownload = async () => {
-        try {
-            const response = await fetch(`/api/export_png`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ latex: latex }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Ошибка при экспорте изображения');
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+        if (mathRef.current) {
+            const canvas = await html2canvas(mathRef.current);
+            const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
             const link = document.createElement('a');
-            link.href = url;
             link.download = 'math-expression.png';
-            document.body.appendChild(link);
+            link.href = image;
             link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Ошибка:', error);
-            alert('Произошла ошибка при экспорте изображения. Пожалуйста, попробуйте еще раз.');
         }
     };
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,9 +77,9 @@ function Editor() {
                 }
 
                 const data = await response.json();
-                setLatex(data.latex);
+                setLatex(data);
                 if (mathFieldRef.current) {
-                    mathFieldRef.current.latex(data.latex);
+                    mathFieldRef.current.latex(data);
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
